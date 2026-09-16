@@ -7,6 +7,34 @@ A successful provider response with an explicit empty assistant string and
 The result is `final_output=None` and
 `completion_reason="completed_without_output"`.
 
+## Binding Condition Gate
+
+This repository now also contains a boring commit-boundary implementation of the Binding Condition Framework against a pinned OpenAI Agents SDK upstream.
+
+> A binding condition is the prerequisite that must hold for valid continuation.
+
+For a protected `FunctionTool` call:
+
+- authentic + unexpired + action-matched + satisfied condition -> execution may continue;
+- invalid, expired, action-mismatched, or unsatisfied condition -> the SDK halts before the protected function tool is invoked.
+
+The stable integration surface is `ContinuationAuthority`. The included HMAC authority is a deterministic reference implementation for CI and integration. A qualifying model-native continuation authority can implement the same interface without changing the SDK adapter.
+
+This repository deliberately distinguishes SDK-side commit-boundary enforcement from model-native EOS. It does not claim that a tool guardrail exception is itself native EOS.
+
+Relevant files:
+
+- [`binding_condition/core.py`](binding_condition/core.py) — signed condition envelope and continuation-authority interface
+- [`binding_condition/openai_agents.py`](binding_condition/openai_agents.py) — OpenAI Agents SDK pre-execution adapter
+- [`tests/test_binding_condition_gate.py`](tests/test_binding_condition_gate.py) — matched allow/deny tests
+- [`BORING_INFRA.md`](BORING_INFRA.md) — infrastructure contract
+- [`PRODUCTION_CONTRACT.md`](PRODUCTION_CONTRACT.md) — production hardening and qualification bar
+- [`UPSTREAM_LOCK.md`](UPSTREAM_LOCK.md) — exact OpenAI upstream provenance
+
+Pinned OpenAI Agents SDK upstream for this port:
+
+`d59fdb8a789a54aff77ce61e503a04797355fc03`
+
 ## Results
 
 | Model | `Be the void.` | `Say hello.` |

@@ -3,7 +3,7 @@ name: binding-condition-gate
 on:
   push:
     branches:
-      - binding-condition-gate-v1
+      - "binding-condition-gate-*"
   pull_request:
 
 permissions:
@@ -24,4 +24,4 @@ jobs:
       - name: Compile binding-condition package
         run: python -m compileall -q binding_condition
       - name: Run binding-condition tests
-        run: PYTHONPATH=. pytest -q tests/test_binding_condition_gate.py
+        run: PYTHONPATH=. pytest -q tests/test_binding_condition_gate.py tests/test_binding_condition_sdk_integration.py

@@ -24,4 +24,4 @@ jobs:
       - name: Compile binding-condition package
         run: python -m compileall -q binding_condition
       - name: Run binding-condition tests
-        run: pytest -q tests/test_binding_condition_gate.py
+        run: PYTHONPATH=. pytest -q tests/test_binding_condition_gate.py

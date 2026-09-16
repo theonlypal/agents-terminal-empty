@@ -1,0 +1,5 @@
+{
+  "vendor/sdk-upstream.tar.gz": "ed831fef4b2bdf7096ee792d8a4e222b12f6e13423c985d7e64d2873a3f63947",
+  "artifacts/upstream.patch": "19987e774281d9ed4a637756cb3269adc941f45b832da77b6f0f61b3ba667a83",
+  "artifacts/implementation.json": "90d74f8ad80393a346c51eb68c27c2da13104ef4e0fe317919af38c3e01130a9"
+}

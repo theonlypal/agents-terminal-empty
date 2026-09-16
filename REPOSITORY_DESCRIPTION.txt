@@ -1,0 +1,1 @@
+Opt-in completion without output for the OpenAI Agents SDK. GPT-4 and GPT-6 Astra records, SDK patch, and reproducible tests.

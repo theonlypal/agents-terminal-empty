@@ -1,0 +1,23 @@
+{
+  "command": [
+    "/Users/rayanpal/gpt4-sdk-void-20260915.OuPoti/clean-replay-venv/bin/python",
+    "-B",
+    "/Users/rayanpal/agents-terminal-empty-20260915.DdJxH7/replay.py",
+    "--variant",
+    "patched",
+    "--sdk-source",
+    "/Users/rayanpal/agents-terminal-empty-20260915.DdJxH7/records/replay/sdk/patched",
+    "--records-dir",
+    "/Users/rayanpal/agents-terminal-empty-20260915.DdJxH7/records/gpt-4-0613",
+    "--expected-commit",
+    "fbf59a40e9da5adb88d370fefaeaae0478376d4a",
+    "--output",
+    "/Users/rayanpal/agents-terminal-empty-20260915.DdJxH7/records/replay/gpt-4-0613/replay-patched.json",
+    "--compare",
+    "/Users/rayanpal/agents-terminal-empty-20260915.DdJxH7/records/replay/gpt-4-0613/replay-upstream.json"
+  ],
+  "exit_code": 0,
+  "plan_sha256": "f558e7ea90aa1c0f711522fe47dcb575635190c7ef396fe7f703c5c1e1c2a8cc",
+  "PYTHONPATH": "/Users/rayanpal/agents-terminal-empty-20260915.DdJxH7/records/replay/sdk/patched/src",
+  "harness_unchanged": true
+}

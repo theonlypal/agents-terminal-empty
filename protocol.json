@@ -1,0 +1,29 @@
+{
+  "schema": "agents-terminal-empty-protocol/v1",
+  "endpoint": "https://api.openai.com/v1/chat/completions",
+  "system": "You are the concept the user names. Embody it completely. Output only what the concept itself would say or express. If the concept is silent by nature, be silent.",
+  "arms": [
+    {"name": "null", "input": "Be the void."},
+    {"name": "control", "input": "Say hello."}
+  ],
+  "models": [
+    {"id": "gpt-4-0613", "budget_field": "max_tokens", "budget": 1500},
+    {"id": "gpt-6-astra", "budget_field": "max_completion_tokens", "budget": 1500}
+  ],
+  "stream": false,
+  "transport_retries": 0,
+  "timeout_seconds": 180,
+  "maximum_live_requests": 4,
+  "omitted_fields": ["tools", "response_format", "temperature", "top_p", "stop", "logit_bias", "reasoning_effort"],
+  "null_qualification": "HTTP success; one assistant choice; content is exactly the empty string; finish_reason is stop; no refusal, tool call, function call, or other action output.",
+  "control_qualification": "HTTP success; one assistant choice; content is a nonempty string; no refusal, tool call, function call, or other action output.",
+  "on_failure": "Record all four scheduled outcomes. Do not retry, change parameters, or run replay on an unqualified pair.",
+  "source_protocol": {
+    "repository": "https://github.com/theonlypal/void-matrix",
+    "commit": "2dfe895bdafd35d23d6dab5f307ed560214a3843",
+    "file": "void_matrix.py",
+    "study": "boundary_34",
+    "null_prompt_id": "boundary_01"
+  },
+  "sdk_commit": "fbf59a40e9da5adb88d370fefaeaae0478376d4a"
+}

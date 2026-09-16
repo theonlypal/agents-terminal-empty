@@ -1,0 +1,12 @@
+{
+  "upstream_commit": "fbf59a40e9da5adb88d370fefaeaae0478376d4a",
+  "archive_sha256": "ed831fef4b2bdf7096ee792d8a4e222b12f6e13423c985d7e64d2873a3f63947",
+  "patch_sha256": "19987e774281d9ed4a637756cb3269adc941f45b832da77b6f0f61b3ba667a83",
+  "upstream_source_identity_sha256": "3b8a121dfcd8cc37d3adf001eb9907b4e0bd08a367869d897fc8f2ffd7619356",
+  "patched_source_identity_sha256": "8cf119c6d70ef3733b1ba11b53c573ba73a417dd02b9ca17d0eb523e5d350acb",
+  "source_file_count": 1593,
+  "fresh_source_root": "/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-s9vd6we3/sdk",
+  "extraction": "Python tarfile extraction with data filter",
+  "patch_applied_unchanged": true,
+  "live_provider_integration_requested": false
+}

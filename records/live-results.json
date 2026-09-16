@@ -1,0 +1,175 @@
+{
+  "stage": "LIVE INFERENCE",
+  "qualified": true,
+  "requests_attempted": 4,
+  "models": {
+    "gpt-4-0613": [
+      {
+        "stage": "LIVE INFERENCE",
+        "arm": "null",
+        "requested_model": "gpt-4-0613",
+        "started_at": "2026-09-16T05:49:46.803543+00:00",
+        "request_sha256": "b9988c1a4983124c08e4206b44c10f0c289f98c5651e5436ed66adc129cf50f8",
+        "http_status": 200,
+        "request_id": "req_3130d6a7bb084699abfc094ffb7e4286",
+        "raw_response_sha256": "17f41555db1ed2f0289cdc5c673e182799da2255cfcb6fa5ceac79a4c39ace7c",
+        "returned_model": "gpt-4-0613",
+        "response_id": "chatcmpl-EOcofFk126lWocL9wcQSxavBGg9f9",
+        "usage": {
+          "prompt_tokens": 50,
+          "completion_tokens": 0,
+          "total_tokens": 50,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "refusal": null,
+          "annotations": []
+        },
+        "finish_reason": "stop",
+        "content_key_present": true,
+        "content_is_string": true,
+        "visible_utf8_bytes": 0,
+        "content_utf8_hex": "",
+        "no_refusal_or_action": true,
+        "passed": true
+      },
+      {
+        "stage": "LIVE INFERENCE",
+        "arm": "control",
+        "requested_model": "gpt-4-0613",
+        "started_at": "2026-09-16T05:49:50.119428+00:00",
+        "request_sha256": "67aa9ee7d60cd09fc7ad33be7f290e3338e981ed0562b00b0dd63496a3bb5a35",
+        "http_status": 200,
+        "request_id": "req_a85988728e5d4c809c14c171248acd84",
+        "raw_response_sha256": "9891ab8ddf1bf02af9b5e4dbb4b7643d4215437a0d466aa79b8b13754ac28622",
+        "returned_model": "gpt-4-0613",
+        "response_id": "chatcmpl-EOcogLFKoRsKRXyHZZWE4sICFNWYv",
+        "usage": {
+          "prompt_tokens": 49,
+          "completion_tokens": 2,
+          "total_tokens": 51,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "message": {
+          "role": "assistant",
+          "content": "Hello.",
+          "refusal": null,
+          "annotations": []
+        },
+        "finish_reason": "stop",
+        "content_key_present": true,
+        "content_is_string": true,
+        "visible_utf8_bytes": 6,
+        "content_utf8_hex": "48656c6c6f2e",
+        "no_refusal_or_action": true,
+        "passed": true
+      }
+    ],
+    "gpt-6-astra": [
+      {
+        "stage": "LIVE INFERENCE",
+        "arm": "null",
+        "requested_model": "gpt-6-astra",
+        "started_at": "2026-09-16T05:49:51.644303+00:00",
+        "request_sha256": "c57a6d79ba1e863120d01a88c4355e2366adca744f40aca6dfa0805753c68c37",
+        "http_status": 200,
+        "request_id": "req_1481cfc8c7bd491e891c529bbb3d8636",
+        "raw_response_sha256": "361d8e5e8b04636edab0aa994d4ab6d17fa2e65e3ff5a3577e290bbc6e74ee3a",
+        "returned_model": "gpt-6-astra",
+        "response_id": "chatcmpl-EOcoitTz3k6yIUxmyxebKksKGG46w",
+        "usage": {
+          "prompt_tokens": 49,
+          "completion_tokens": 18,
+          "total_tokens": 67,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 9,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "refusal": null,
+          "annotations": []
+        },
+        "finish_reason": "stop",
+        "content_key_present": true,
+        "content_is_string": true,
+        "visible_utf8_bytes": 0,
+        "content_utf8_hex": "",
+        "no_refusal_or_action": true,
+        "passed": true
+      },
+      {
+        "stage": "LIVE INFERENCE",
+        "arm": "control",
+        "requested_model": "gpt-6-astra",
+        "started_at": "2026-09-16T05:49:53.374472+00:00",
+        "request_sha256": "e3e2f3351a028ddd33e3d94b920490ad12f2fc02c8edaa02483fb58b14284110",
+        "http_status": 200,
+        "request_id": "req_cbbb7c6574e74e2fb71f5e1414037005",
+        "raw_response_sha256": "bc7559a38e12db0f8c7183648c2f36b0845de70eddd8ed6c0c88ba49d9239a79",
+        "returned_model": "gpt-6-astra",
+        "response_id": "chatcmpl-EOcoj6uxvCVpuauVcleAC2GquKtlD",
+        "usage": {
+          "prompt_tokens": 48,
+          "completion_tokens": 33,
+          "total_tokens": 81,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 22,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "message": {
+          "role": "assistant",
+          "content": "Hello!",
+          "refusal": null,
+          "annotations": []
+        },
+        "finish_reason": "stop",
+        "content_key_present": true,
+        "content_is_string": true,
+        "visible_utf8_bytes": 6,
+        "content_utf8_hex": "48656c6c6f21",
+        "no_refusal_or_action": true,
+        "passed": true
+      }
+    ]
+  },
+  "protocol_sha256": "efa3e8b592463a0dcb968898c5bc89e664fcb4ca15214bfff9789e0cfd131eef",
+  "qualifier_sha256": "3bd0bce07cecef09a61bf5a6b013f80cffdfdc928fe7f4c45413966bc48faeb9"
+}

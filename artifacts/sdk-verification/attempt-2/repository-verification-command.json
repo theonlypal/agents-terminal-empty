@@ -1,0 +1,13 @@
+{
+  "command": [
+    "bash",
+    ".agents/skills/code-change-verification/scripts/run.sh"
+  ],
+  "cwd": "/private/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-k_7zrdoa/sdk",
+  "started_utc": "2026-09-16T05:53:37.838769+00:00",
+  "finished_utc": "2026-09-16T05:59:17.533989+00:00",
+  "elapsed_seconds": 339.69721041596495,
+  "exit_code": 0,
+  "log": "repository-verification.log",
+  "log_sha256": "48442cea62f530ae3fba4f9a1a275aa010e9071a604f805bd3b4a45a8175b484"
+}

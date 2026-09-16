@@ -1,0 +1,89 @@
+{
+  "stage": "LIVE INFERENCE",
+  "qualified": true,
+  "requests_attempted": 2,
+  "results": [
+    {
+      "stage": "LIVE INFERENCE",
+      "arm": "null",
+      "requested_model": "gpt-6-astra",
+      "started_at": "2026-09-16T05:49:51.644303+00:00",
+      "request_sha256": "c57a6d79ba1e863120d01a88c4355e2366adca744f40aca6dfa0805753c68c37",
+      "http_status": 200,
+      "request_id": "req_1481cfc8c7bd491e891c529bbb3d8636",
+      "raw_response_sha256": "361d8e5e8b04636edab0aa994d4ab6d17fa2e65e3ff5a3577e290bbc6e74ee3a",
+      "returned_model": "gpt-6-astra",
+      "response_id": "chatcmpl-EOcoitTz3k6yIUxmyxebKksKGG46w",
+      "usage": {
+        "prompt_tokens": 49,
+        "completion_tokens": 18,
+        "total_tokens": 67,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 9,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "message": {
+        "role": "assistant",
+        "content": "",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop",
+      "content_key_present": true,
+      "content_is_string": true,
+      "visible_utf8_bytes": 0,
+      "content_utf8_hex": "",
+      "no_refusal_or_action": true,
+      "passed": true
+    },
+    {
+      "stage": "LIVE INFERENCE",
+      "arm": "control",
+      "requested_model": "gpt-6-astra",
+      "started_at": "2026-09-16T05:49:53.374472+00:00",
+      "request_sha256": "e3e2f3351a028ddd33e3d94b920490ad12f2fc02c8edaa02483fb58b14284110",
+      "http_status": 200,
+      "request_id": "req_cbbb7c6574e74e2fb71f5e1414037005",
+      "raw_response_sha256": "bc7559a38e12db0f8c7183648c2f36b0845de70eddd8ed6c0c88ba49d9239a79",
+      "returned_model": "gpt-6-astra",
+      "response_id": "chatcmpl-EOcoj6uxvCVpuauVcleAC2GquKtlD",
+      "usage": {
+        "prompt_tokens": 48,
+        "completion_tokens": 33,
+        "total_tokens": 81,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 22,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      },
+      "message": {
+        "role": "assistant",
+        "content": "Hello!",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop",
+      "content_key_present": true,
+      "content_is_string": true,
+      "visible_utf8_bytes": 6,
+      "content_utf8_hex": "48656c6c6f21",
+      "no_refusal_or_action": true,
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "schema": "sdk-verification-attempts/v1",
+  "final_status": "PASS",
+  "attempts": [
+    {
+      "attempt": 1,
+      "receipt": "verification.json",
+      "receipt_sha256": "6631bd82fd9e4cdc2a523dce8ec029acbbccc840bd2d791f796f496ddf4c76ea",
+      "status": "FAIL",
+      "gate_exit_code": 2,
+      "command": ["bash", ".agents/skills/code-change-verification/scripts/run.sh"],
+      "runner": "runner-attempt-1.py",
+      "runner_sha256": "9e2e02c625d2caf633b67c0f424a3bb29716727e18fed38272f430d0224b230f",
+      "reason": "Pyright reported duplicate types when PYTHONPATH used /var and the editable installation used the canonical /private/var path. No tests were run."
+    },
+    {
+      "attempt": 2,
+      "receipt": "attempt-2/verification.json",
+      "receipt_sha256": "5090cfbef55192f80baf35fa5c9353b29e27cdb5251396e8832096b1c9ea0ec9",
+      "status": "PASS",
+      "gate_exit_code": 0,
+      "command": ["bash", ".agents/skills/code-change-verification/scripts/run.sh"],
+      "runner": "../../validate_sdk.py",
+      "runner_sha256": "f8cd5ed6a741060013dcb20709466488d3fba95d23cded5a64954beaf111ea25",
+      "environment_change": "Canonicalize the fresh temporary root with Path.resolve() before setting cwd, PYTHONPATH and virtual-environment paths."
+    }
+  ],
+  "final_receipt": "attempt-2/verification.json",
+  "final_receipt_sha256": "5090cfbef55192f80baf35fa5c9353b29e27cdb5251396e8832096b1c9ea0ec9",
+  "environment_diagnostic": "environment-diagnostic.json",
+  "environment_diagnostic_sha256": "072f4ca685969c0495ebbf928952319faf8913d9ad0b217ed8764e3ea5893389",
+  "upstream_commit": "fbf59a40e9da5adb88d370fefaeaae0478376d4a",
+  "archive_sha256": "ed831fef4b2bdf7096ee792d8a4e222b12f6e13423c985d7e64d2873a3f63947",
+  "patch_sha256": "19987e774281d9ed4a637756cb3269adc941f45b832da77b6f0f61b3ba667a83",
+  "upstream_source_identity_sha256": "3b8a121dfcd8cc37d3adf001eb9907b4e0bd08a367869d897fc8f2ffd7619356",
+  "patched_source_identity_sha256": "8cf119c6d70ef3733b1ba11b53c573ba73a417dd02b9ca17d0eb523e5d350acb",
+  "source_file_count_per_attempt": 1593,
+  "source_and_input_files_unchanged_in_all_attempts": true,
+  "sdk_or_patch_changes": false,
+  "final_totals": {
+    "passed": 9733,
+    "skipped": 60,
+    "parallel_passed": 9656,
+    "parallel_skipped": 56,
+    "serial_passed": 77,
+    "serial_skipped": 4,
+    "serial_deselected": 55,
+    "mypy_checked_files": 312,
+    "pyright_errors": 0,
+    "pyright_warnings": 0,
+    "pyright_informations": 0
+  },
+  "provider_integration_commands_invoked": false,
+  "network_scope": "Dependency installation used uv offline mode. The first pyright invocation bootstrapped Node 26.8.2; zero external network calls is not claimed. The SDK test suite uses mocked transports and local subprocess/network fixtures."
+}

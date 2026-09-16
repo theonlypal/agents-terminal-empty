@@ -1,0 +1,847 @@
+diff --git a/src/agents/items.py b/src/agents/items.py
+index 49f734b1d000f28e90c48ba761d71597c5d122a3..b1937a2a76913558d5cd78e0117e3264e5a9f9c7 100644
+--- a/src/agents/items.py
++++ b/src/agents/items.py
+@@ -729,6 +729,14 @@ class ModelResponse:
+     field-presence information.
+     """
+ 
++    empty_output_stop_reason: Literal["stop"] | None = None
++    """A provider normal stop with explicitly empty assistant text and no action or refusal.
++
++    Chat Completions sets this only when the provider returns an empty string, not missing or
++    null content. This records a response boundary, not model intent or an observed EOS token.
++    Other model implementations leave it unset unless they preserve equivalent evidence.
++    """
++
+     def to_input_items(self) -> list[TResponseInputItem]:
+         """Convert the output into a list of input items suitable for passing to the model."""
+         # Most output items can be replayed via a direct model_dump, but several types (tool
+diff --git a/src/agents/models/openai_chatcompletions.py b/src/agents/models/openai_chatcompletions.py
+index 43dd2feba53369884045288f272c44e0ec73838c..c02289ebfe70c15e2769ce8f10512dbb42cbac95 100644
+--- a/src/agents/models/openai_chatcompletions.py
++++ b/src/agents/models/openai_chatcompletions.py
+@@ -5,6 +5,7 @@ import inspect
+ import json
+ import time
+ from collections.abc import AsyncIterator
++from dataclasses import dataclass
+ from typing import TYPE_CHECKING, Any, Literal, cast, overload
+ 
+ from openai import AsyncOpenAI, AsyncStream, Omit, omit
+@@ -52,6 +53,42 @@ if TYPE_CHECKING:
+     from ..model_settings import ModelSettings
+ 
+ 
++@dataclass
++class _EmptyOutputStopEvidence:
++    """Observe raw choice-zero evidence before stream buffering discards terminal chunks."""
++
++    saw_empty_text: bool = False
++    saw_stop: bool = False
++    saw_other_output_or_terminal: bool = False
++
++    def observe(self, chunk: ChatCompletionChunk) -> None:
++        if len(chunk.choices) > 1 or any(choice.index != 0 for choice in chunk.choices):
++            self.saw_other_output_or_terminal = True
++        choice = next((choice for choice in chunk.choices if choice.index == 0), None)
++        if choice is None:
++            return
++        if choice.finish_reason == "stop":
++            self.saw_stop = True
++        elif choice.finish_reason is not None:
++            self.saw_other_output_or_terminal = True
++        delta = choice.delta
++        if delta is not None:
++            self.saw_empty_text = self.saw_empty_text or delta.content == ""
++            self.saw_other_output_or_terminal = self.saw_other_output_or_terminal or (
++                bool(delta.content)
++                or delta.refusal is not None
++                or bool(delta.tool_calls)
++                or delta.function_call is not None
++                or getattr(delta, "audio", None) is not None
++            )
++
++    @property
++    def stop_reason(self) -> Literal["stop"] | None:
++        if self.saw_empty_text and self.saw_stop and not self.saw_other_output_or_terminal:
++            return "stop"
++        return None
++
++
+ class OpenAIChatCompletionsModel(Model):
+     _OFFICIAL_OPENAI_SUPPORTED_INPUT_CONTENT_TYPES = frozenset(
+         {"input_text", "input_image", "input_audio", "input_file"}
+@@ -385,6 +422,19 @@ class OpenAIChatCompletionsModel(Model):
+                     if model_settings.preserve_raw_usage is True
+                     else None
+                 ),
++                empty_output_stop_reason=(
++                    "stop"
++                    if first_choice is not None
++                    and len(response.choices) == 1
++                    and first_choice.finish_reason == "stop"
++                    and message is not None
++                    and message.content == ""
++                    and message.refusal is None
++                    and not message.tool_calls
++                    and message.function_call is None
++                    and message.audio is None
++                    else None
++                ),
+             )
+ 
+     @staticmethod
+@@ -472,11 +522,18 @@ class OpenAIChatCompletionsModel(Model):
+             self._attach_stream_request_id(response, stream)
+ 
+             final_response: Response | None = None
++            empty_output_evidence = _EmptyOutputStopEvidence()
++
++            async def observe_stream() -> AsyncIterator[ChatCompletionChunk]:
++                async for provider_chunk in stream:
++                    empty_output_evidence.observe(provider_chunk)
++                    yield provider_chunk
++
+             stream_for_handler: AsyncIterator[ChatCompletionChunk]
+             if self._buffer_streamed_tool_calls:
+-                stream_for_handler = ChatCmplStreamHandler.buffer_tool_call_stream(stream)
++                stream_for_handler = ChatCmplStreamHandler.buffer_tool_call_stream(observe_stream())
+             else:
+-                stream_for_handler = stream
++                stream_for_handler = observe_stream()
+ 
+             raw_usage_options: dict[str, Any] = (
+                 {"preserve_raw_usage": True} if model_settings.preserve_raw_usage is True else {}
+@@ -494,6 +551,11 @@ class OpenAIChatCompletionsModel(Model):
+                 ):
+                     if chunk.type == "response.completed":
+                         final_response = chunk.response
++                        if empty_output_evidence.stop_reason == "stop":
++                            # Keep adapter evidence outside provider metadata and wire fields.
++                            object.__setattr__(
++                                final_response, "_agents_empty_output_stop_reason", "stop"
++                            )
+                         yielded_terminal_event = True
+                         # Populate the span before yielding, because a caller that stops
+                         # consuming at the terminal event closes this generator and never
+diff --git a/src/agents/result.py b/src/agents/result.py
+index 70d48fe3efdc41fb27c269d26585260ca2bd11dd..2c3be98a12ad1c0e8c03837904d4f387d6f025d7 100644
+--- a/src/agents/result.py
++++ b/src/agents/result.py
+@@ -18,6 +18,7 @@ from .exceptions import (
+     InputGuardrailTripwireTriggered,
+     MaxTurnsExceeded,
+     RunErrorDetails,
++    UserError,
+     _await_data_redacted_error_boundary,
+     _detach_data_redacted_error_traceback,
+     _is_error_data_redacted,
+@@ -370,6 +371,12 @@ class RunResultBase(abc.ABC):
+     _current_step_for_state: Any = field(default=None, init=False, repr=False)
+     """Current step preserved when a non-streaming result is converted back to RunState."""
+ 
++    completion_reason: Literal["completed_without_output"] | None = field(default=None, init=False)
++    """Explicit terminal-empty classification, or None for existing completion behavior.
++
++    Terminal-empty results contain no structured answer and cannot be resumed with ``to_state``.
++    """
++
+     @classmethod
+     def __get_pydantic_core_schema__(
+         cls,
+@@ -566,6 +573,8 @@ class RunResult(RunResultBase):
+                 result = await Runner.run(agent, state)
+             ```
+         """
++        if self.completion_reason == "completed_without_output":
++            raise UserError("A completed_without_output result is terminal and cannot be resumed.")
+         # Create a RunState from the current result
+         original_input_for_state = getattr(self, "_original_input", None)
+         state = RunState(
+@@ -1229,6 +1238,8 @@ class RunResultStreaming(RunResultBase):
+                     pass
+             ```
+         """
++        if self.completion_reason == "completed_without_output":
++            raise UserError("A completed_without_output result is terminal and cannot be resumed.")
+         # Create a RunState from the current result
+         # Use _original_input (updated on handoffs/resume when input history changes).
+         # This avoids serializing a mutated view of input history.
+diff --git a/src/agents/run.py b/src/agents/run.py
+index 297895a347463bec1a38a3e2e46839bc806f4c30..288fa5bb1ac077591a7d2c2cb939f0d28ef356b0 100644
+--- a/src/agents/run.py
++++ b/src/agents/run.py
+@@ -1271,7 +1271,9 @@ class AgentRunner:
+                                 output_guardrail_result_start = len(output_guardrail_results)
+                                 try:
+                                     await run_output_guardrails(
+-                                        current_agent.output_guardrails
++                                        []
++                                        if turn_result.next_step.completion_reason is not None
++                                        else current_agent.output_guardrails
+                                         + (run_config.output_guardrails or []),
+                                         current_agent,
+                                         turn_result.next_step.output,
+@@ -1415,6 +1417,7 @@ class AgentRunner:
+                                     _tool_use_tracker_snapshot=_tool_use_tracker_snapshot(),
+                                     max_turns=max_turns,
+                                 )
++                                result.completion_reason = turn_result.next_step.completion_reason
+                                 result._current_turn = current_turn
+                                 result._model_input_items = list(generated_items)
+                                 # Keep normalized replay aligned with the model-facing
+@@ -1921,7 +1924,9 @@ class AgentRunner:
+                             output_guardrail_result_start = len(output_guardrail_results)
+                             try:
+                                 await run_output_guardrails(
+-                                    current_agent.output_guardrails
++                                    []
++                                    if turn_result.next_step.completion_reason is not None
++                                    else current_agent.output_guardrails
+                                     + (run_config.output_guardrails or []),
+                                     current_agent,
+                                     turn_result.next_step.output,
+@@ -2058,6 +2063,7 @@ class AgentRunner:
+                                 _tool_use_tracker_snapshot=_tool_use_tracker_snapshot(),
+                                 max_turns=max_turns,
+                             )
++                            result.completion_reason = turn_result.next_step.completion_reason
+                             result._current_turn = current_turn
+                             result._model_input_items = list(generated_items)
+                             result._replay_from_model_input_items = list(generated_items) != list(
+diff --git a/src/agents/run_config.py b/src/agents/run_config.py
+index f57d46c6f111e24d34ef38e06230b666bcc40643..04db9b77aa47eea86f1cac95596f266fc289259a 100644
+--- a/src/agents/run_config.py
++++ b/src/agents/run_config.py
+@@ -495,6 +495,15 @@ class RunConfig:
+     output and guardrail ``output_info`` are never passed to the formatter.
+     """
+ 
++    complete_on_empty_stop: bool = False
++    """Opt in to terminal completion for adapter-confirmed empty normal-stop responses.
++
++    The result has no final answer (``final_output is None``), and ``completion_reason`` is
++    ``"completed_without_output"``. Structured-output validation and output guardrails are not
++    invoked for this terminal state. Input/tool controls and end hooks remain active. No provider
++    request settings are changed. Adapters without explicit empty-stop metadata are unaffected.
++    """
++
+     if TYPE_CHECKING:
+ 
+         def __init__(
+@@ -526,6 +535,7 @@ class RunConfig:
+             output_guardrail_blocked_message: (
+                 str | OutputGuardrailBlockedMessageFormatter | None
+             ) = None,
++            complete_on_empty_stop: bool = False,
+         ) -> None: ...
+ 
+     def __post_init__(self) -> None:
+diff --git a/src/agents/run_internal/run_loop.py b/src/agents/run_internal/run_loop.py
+index 9871a54041a3d1c6c49a272d67f8096b9fb071db..14853250d67cc00bbe8ba4c4d392c114be6d11eb 100644
+--- a/src/agents/run_internal/run_loop.py
++++ b/src/agents/run_internal/run_loop.py
+@@ -10,7 +10,7 @@ import dataclasses as _dc
+ from collections.abc import Awaitable, Callable
+ from contextlib import aclosing
+ from functools import partial
+-from typing import Any, TypeVar, cast
++from typing import Any, Literal, TypeVar, cast
+ from uuid import uuid4
+ 
+ from openai.types.responses import (
+@@ -504,16 +504,21 @@ async def _finalize_streamed_final_output(
+     response_id: str | None,
+     store_setting: bool | None,
+     on_persisted_after_guardrails: Callable[[bool], None] | None = None,
++    completion_reason: Literal["completed_without_output"] | None = None,
+ ) -> None:
+     output_guardrail_result_start = len(streamed_result.output_guardrail_results)
+     redacted_persistence_error: BaseException | None = None
+     try:
+-        output_guardrail_results = await _run_output_guardrails_for_stream(
+-            agent=agent,
+-            run_config=run_config,
+-            output=output,
+-            context_wrapper=context_wrapper,
+-            streamed_result=streamed_result,
++        output_guardrail_results = (
++            []
++            if completion_reason is not None
++            else await _run_output_guardrails_for_stream(
++                agent=agent,
++                run_config=run_config,
++                output=output,
++                context_wrapper=context_wrapper,
++                streamed_result=streamed_result,
++            )
+         )
+     except OutputGuardrailTripwireTriggered as exc:
+         if not _is_terminal_tool_output_response(
+@@ -651,6 +656,7 @@ async def _finalize_streamed_final_output(
+         streamed_result._state._terminal_unrecoverable = False
+ 
+     streamed_result.final_output = output
++    streamed_result.completion_reason = completion_reason
+     if on_persisted_after_guardrails is not None:
+         on_persisted_after_guardrails(True)
+     streamed_result.is_complete = True
+@@ -1452,6 +1458,7 @@ async def start_streaming(
+                             agent=current_agent,
+                             run_config=run_config,
+                             output=turn_result.next_step.output,
++                            completion_reason=turn_result.next_step.completion_reason,
+                             context_wrapper=context_wrapper,
+                             save_items=_save_resumed_items,
+                             items=list(turn_session_items),
+@@ -1915,6 +1922,7 @@ async def start_streaming(
+                         agent=current_agent,
+                         run_config=run_config,
+                         output=turn_result.next_step.output,
++                        completion_reason=turn_result.next_step.completion_reason,
+                         context_wrapper=context_wrapper,
+                         save_items=_save_stream_items_with_count,
+                         items=turn_session_items,
+@@ -2322,6 +2330,9 @@ async def run_single_turn_streamed(
+                 )
+                 final_response = ModelResponse(
+                     output=terminal_response.output,
++                    empty_output_stop_reason=terminal_response.__dict__.get(
++                        "_agents_empty_output_stop_reason"
++                    ),
+                     usage=usage,
+                     response_id=terminal_response.id,
+                     request_id=getattr(terminal_response, "_request_id", None),
+diff --git a/src/agents/run_internal/run_steps.py b/src/agents/run_internal/run_steps.py
+index f692e1ca4e8df9b4d9eab2c6b045312e8470838d..301976668f9ef27c1de44f0a4fee172186a2fecd 100644
+--- a/src/agents/run_internal/run_steps.py
++++ b/src/agents/run_internal/run_steps.py
+@@ -7,7 +7,7 @@ from __future__ import annotations
+ 
+ import dataclasses
+ from dataclasses import dataclass
+-from typing import Any
++from typing import Any, Literal
+ 
+ from openai.types.responses import ResponseComputerToolCall, ResponseFunctionToolCall
+ from openai.types.responses.response_output_item import LocalShellCall, McpApprovalRequest
+@@ -160,6 +160,7 @@ class NextStepHandoff:
+ @dataclass
+ class NextStepFinalOutput:
+     output: Any
++    completion_reason: Literal["completed_without_output"] | None = None
+ 
+ 
+ @dataclass
+diff --git a/src/agents/run_internal/turn_resolution.py b/src/agents/run_internal/turn_resolution.py
+index ae9fec7619363d0c3b8c05b0c3b68835547a7f0e..10a07569a627c755c83a3e51e938a2ec58ce970b 100644
+--- a/src/agents/run_internal/turn_resolution.py
++++ b/src/agents/run_internal/turn_resolution.py
+@@ -114,7 +114,7 @@ from ..tool import (
+     get_function_tool_origin,
+ )
+ from ..tool_guardrails import ToolInputGuardrailResult, ToolOutputGuardrailResult
+-from ..tracing import SpanError, handoff_span
++from ..tracing import SpanError, custom_span, handoff_span
+ from ..util import _coro, _error_tracing
+ from ..util._approvals import evaluate_needs_approval_setting
+ from ..util._asyncio_tasks import gather_with_cancel
+@@ -996,6 +996,35 @@ async def execute_tools_and_side_effects(
+                     tool_input_guardrail_results=tool_input_guardrail_results,
+                     tool_output_guardrail_results=tool_output_guardrail_results,
+                 )
++            if (
++                run_config.complete_on_empty_stop
++                and new_response.empty_output_stop_reason == "stop"
++                and all(
++                    item.type == "message"
++                    and all(part.type == "output_text" and part.text == "" for part in item.content)
++                    for item in new_response.output
++                )
++            ):
++                result = await execute_final_output_call(
++                    public_agent=public_agent,
++                    original_input=original_input,
++                    new_response=new_response,
++                    pre_step_items=pre_step_items,
++                    new_step_items=new_step_items,
++                    final_output=None,
++                    hooks=hooks,
++                    context_wrapper=context_wrapper,
++                    tool_input_guardrail_results=tool_input_guardrail_results,
++                    tool_output_guardrail_results=tool_output_guardrail_results,
++                )
++                result.next_step = NextStepFinalOutput(
++                    output=None, completion_reason="completed_without_output"
++                )
++                with custom_span(
++                    "completed_without_output", data={"provider_finish_reason": "stop"}
++                ):
++                    pass
++                return result
+             if output_schema is not None and not output_schema.is_plain_text():
+                 if potential_final_output_text:
+                     validation_error: ModelBehaviorError | None = None
+diff --git a/src/agents/testing/model.py b/src/agents/testing/model.py
+index d14576ee2608fda6681156fb7cd8dc117c608a0f..fa3c2587fc165a51865515e8d6aa1b56b042f560 100644
+--- a/src/agents/testing/model.py
++++ b/src/agents/testing/model.py
+@@ -186,6 +186,7 @@ class ModelStep:
+     responder: ModelResponder | None = None
+     stream_events: Sequence[TResponseStreamEvent] | ModelStreamFactory | None = None
+     retry_advice: ModelRetryAdvice | None = None
++    empty_output_stop_reason: Literal["stop"] | None = None
+ 
+     @classmethod
+     def raise_error(
+@@ -233,6 +234,7 @@ class ModelStepSpec(TypedDict, total=False):
+     responder: ModelResponder | None
+     stream_events: Sequence[TResponseStreamEvent] | ModelStreamFactory | None
+     retry_advice: ModelRetryAdvice | None
++    empty_output_stop_reason: Literal["stop"] | None
+ 
+ 
+ _MODEL_STEP_FIELDS = frozenset(ModelStepSpec.__annotations__)
+@@ -520,6 +522,7 @@ class ScriptedModel(Model):
+                 response_id=step.response_id,
+                 request_id=step.request_id,
+                 raw_usage=step.raw_usage,
++                empty_output_stop_reason=step.empty_output_stop_reason,
+             )
+         elif isinstance(step, Exception):
+             normalized = ModelStep.raise_error(step)
+@@ -563,6 +566,7 @@ class ScriptedModel(Model):
+                 if model_settings.preserve_raw_usage is True
+                 else None
+             ),
++            empty_output_stop_reason=step.empty_output_stop_reason,
+         )
+ 
+     @staticmethod
+@@ -690,6 +694,7 @@ def _snapshot_model_step(step: ModelStep) -> ModelStep:
+         responder=step.responder,
+         stream_events=stream_events,
+         retry_advice=copy.deepcopy(step.retry_advice),
++        empty_output_stop_reason=step.empty_output_stop_reason,
+     )
+ 
+ 
+@@ -1198,6 +1203,8 @@ def _response_for_step(
+         object.__setattr__(response, "id", None)
+     if step.request_id is not None:
+         response._request_id = step.request_id
++    if step.empty_output_stop_reason == "stop":
++        object.__setattr__(response, "_agents_empty_output_stop_reason", "stop")
+     return response
+ 
+ 
+diff --git a/tests/models/test_empty_output_stop_metadata.py b/tests/models/test_empty_output_stop_metadata.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..98bab8097ba017993a039f37034a7d74b9fe4784
+--- /dev/null
++++ b/tests/models/test_empty_output_stop_metadata.py
+@@ -0,0 +1,243 @@
++from __future__ import annotations
++
++from collections.abc import AsyncIterator
++from typing import Any
++from unittest.mock import AsyncMock
++
++import pytest
++from openai import AsyncOpenAI
++from openai.types.chat import ChatCompletion, ChatCompletionChunk
++from openai.types.chat.chat_completion import Choice
++from openai.types.responses import ResponseCompletedEvent
++
++from agents import ModelResponse, ModelSettings, ModelTracing, OpenAIChatCompletionsModel
++from agents.exceptions import ModelBehaviorError
++from agents.testing import ModelStep, ScriptedModel
++from agents.usage import Usage
++
++pytestmark = [pytest.mark.asyncio, pytest.mark.allow_call_model_methods]
++
++
++def _arguments() -> dict[str, Any]:
++    return {
++        "system_instructions": None,
++        "input": "synthetic input",
++        "model_settings": ModelSettings(),
++        "tools": [],
++        "output_schema": None,
++        "handoffs": [],
++        "tracing": ModelTracing.DISABLED,
++        "previous_response_id": None,
++        "conversation_id": None,
++        "prompt": None,
++    }
++
++
++def _completion(message: dict[str, Any], finish_reason: str = "stop") -> ChatCompletion:
++    return ChatCompletion(
++        id="synthetic-completion",
++        created=0,
++        model="synthetic-model",
++        object="chat.completion",
++        choices=[
++            Choice.model_validate(
++                {
++                    "index": 0,
++                    "finish_reason": finish_reason,
++                    "message": {"role": "assistant", **message},
++                }
++            )
++        ],
++    )
++
++
++@pytest.mark.parametrize(
++    ("message", "finish_reason", "expected"),
++    [
++        ({"content": ""}, "stop", "stop"),
++        ({"content": None}, "stop", None),
++        ({}, "stop", None),
++        ({"content": " "}, "stop", None),
++        ({"content": "\u200b"}, "stop", None),
++        ({"content": "answer"}, "stop", None),
++        ({"content": "", "refusal": "Cannot comply."}, "stop", None),
++        ({"content": ""}, "content_filter", None),
++        (
++            {
++                "content": "",
++                "tool_calls": [
++                    {
++                        "id": "call-test",
++                        "type": "function",
++                        "function": {"name": "synthetic_tool", "arguments": "{}"},
++                    }
++                ],
++            },
++            "tool_calls",
++            None,
++        ),
++        (
++            {
++                "content": "",
++                "function_call": {"name": "synthetic_tool", "arguments": "{}"},
++            },
++            "stop",
++            None,
++        ),
++    ],
++)
++async def test_chat_adapter_requires_explicit_empty_normal_stop(
++    monkeypatch: pytest.MonkeyPatch,
++    message: dict[str, Any],
++    finish_reason: str,
++    expected: str | None,
++) -> None:
++    # Provider-wire conversion is the boundary under test, not a scripted model response.
++    async with AsyncOpenAI(api_key="synthetic-test-key") as client:
++        monkeypatch.setattr(
++            client.chat.completions,
++            "create",
++            AsyncMock(return_value=_completion(message, finish_reason)),
++        )
++        response = await OpenAIChatCompletionsModel("synthetic-model", client).get_response(
++            **_arguments()
++        )
++    assert response.empty_output_stop_reason == expected
++    if expected == "stop":
++        assert response.output == []
++        assert response.to_input_items() == []
++    assert response.usage.requests == 1
++
++
++async def test_empty_length_response_remains_an_error(monkeypatch: pytest.MonkeyPatch) -> None:
++    async with AsyncOpenAI(api_key="synthetic-test-key") as client:
++        monkeypatch.setattr(
++            client.chat.completions,
++            "create",
++            AsyncMock(return_value=_completion({"content": ""}, "length")),
++        )
++        with pytest.raises(ModelBehaviorError, match="finish_reason='length'"):
++            await OpenAIChatCompletionsModel("synthetic-model", client).get_response(**_arguments())
++
++
++async def test_multiple_choices_do_not_supply_terminal_empty_evidence(
++    monkeypatch: pytest.MonkeyPatch,
++) -> None:
++    response = _completion({"content": ""})
++    response.choices.append(response.choices[0].model_copy(update={"index": 1}))
++    async with AsyncOpenAI(api_key="synthetic-test-key") as client:
++        monkeypatch.setattr(client.chat.completions, "create", AsyncMock(return_value=response))
++        result = await OpenAIChatCompletionsModel("synthetic-model", client).get_response(
++            **_arguments()
++        )
++    assert result.empty_output_stop_reason is None
++
++
++async def _chunks(
++    deltas: list[dict[str, Any]], finish_reason: str | None
++) -> AsyncIterator[ChatCompletionChunk]:
++    for delta in deltas:
++        yield ChatCompletionChunk.model_validate(
++            {
++                "id": "synthetic-stream",
++                "object": "chat.completion.chunk",
++                "created": 0,
++                "model": "synthetic-model",
++                "choices": [{"index": 0, "delta": delta, "finish_reason": None}],
++            }
++        )
++    if finish_reason is not None:
++        yield ChatCompletionChunk.model_validate(
++            {
++                "id": "synthetic-stream",
++                "object": "chat.completion.chunk",
++                "created": 0,
++                "model": "synthetic-model",
++                "choices": [{"index": 0, "delta": {}, "finish_reason": finish_reason}],
++            }
++        )
++
++
++@pytest.mark.parametrize("buffer_tool_calls", [False, True])
++@pytest.mark.parametrize(
++    ("deltas", "finish_reason", "expected"),
++    [
++        ([{"role": "assistant", "content": ""}], "stop", "stop"),
++        ([{"role": "assistant", "content": None}], "stop", None),
++        ([{"role": "assistant"}], "stop", None),
++        ([], "stop", None),
++        ([{"content": ""}], None, None),
++        ([{"content": ""}, {"content": " "}], "stop", None),
++        ([{"content": ""}, {"content": "answer"}], "stop", None),
++        ([{"content": ""}, {"refusal": "Cannot comply."}], "stop", None),
++        ([{"content": ""}], "content_filter", None),
++        (
++            [
++                {"content": ""},
++                {
++                    "tool_calls": [
++                        {
++                            "index": 0,
++                            "id": "call-test",
++                            "type": "function",
++                            "function": {"name": "synthetic_tool", "arguments": "{}"},
++                        }
++                    ]
++                },
++            ],
++            "tool_calls",
++            None,
++        ),
++    ],
++)
++async def test_stream_adapter_preserves_only_observed_empty_stop(
++    monkeypatch: pytest.MonkeyPatch,
++    deltas: list[dict[str, Any]],
++    finish_reason: str | None,
++    expected: str | None,
++    buffer_tool_calls: bool,
++) -> None:
++    async with AsyncOpenAI(api_key="synthetic-test-key") as client:
++        monkeypatch.setattr(
++            client.chat.completions,
++            "create",
++            AsyncMock(return_value=_chunks(deltas, finish_reason)),
++        )
++        model = OpenAIChatCompletionsModel(
++            "synthetic-model", client, buffer_streamed_tool_calls=buffer_tool_calls
++        )
++        events = [event async for event in model.stream_response(**_arguments())]
++    terminal = next(event for event in events if isinstance(event, ResponseCompletedEvent))
++    assert terminal.response.__dict__.get("_agents_empty_output_stop_reason") == expected
++    assert "_agents_empty_output_stop_reason" not in terminal.response.model_dump()
++    if expected == "stop":
++        assert terminal.response.output == []
++
++
++@pytest.mark.parametrize("script_kind", ["response", "step", "mapping"])
++async def test_scripted_model_preserves_metadata_both_paths(script_kind: str) -> None:
++    script: Any
++    if script_kind == "response":
++        script = ModelResponse([], Usage(requests=1), None, empty_output_stop_reason="stop")
++    elif script_kind == "step":
++        script = ModelStep(empty_output_stop_reason="stop")
++    else:
++        script = {"empty_output_stop_reason": "stop"}
++    model = ScriptedModel([script, script])
++    response = await model.get_response(**_arguments())
++    assert response.empty_output_stop_reason == "stop"
++    events = [event async for event in model.stream_response(**_arguments())]
++    terminal = next(event for event in events if isinstance(event, ResponseCompletedEvent))
++    assert terminal.response.__dict__.get("_agents_empty_output_stop_reason") == "stop"
++    assert "_agents_empty_output_stop_reason" not in terminal.response.model_dump()
++
++
++async def test_old_positional_model_response_and_default_script_remain_unmarked() -> None:
++    response = ModelResponse([], Usage(), None, "request-test", {"total_tokens": 0})
++    assert response.request_id == "request-test"
++    assert response.raw_usage == {"total_tokens": 0}
++    assert response.empty_output_stop_reason is None
++    model = ScriptedModel([ModelStep()])
++    events = [event async for event in model.stream_response(**_arguments())]
++    terminal = next(event for event in events if isinstance(event, ResponseCompletedEvent))
++    assert "_agents_empty_output_stop_reason" not in terminal.response.__dict__
+diff --git a/tests/test_empty_stop_policy.py b/tests/test_empty_stop_policy.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..c8bb481bf18f82fa615d095c6fc8efc385de56ea
+--- /dev/null
++++ b/tests/test_empty_stop_policy.py
+@@ -0,0 +1,154 @@
++from __future__ import annotations
++
++from typing import Any
++
++import pytest
++from pydantic import BaseModel
++
++from agents import (
++    Agent,
++    GuardrailFunctionOutput,
++    InputGuardrail,
++    InputGuardrailTripwireTriggered,
++    OutputGuardrail,
++    RunConfig,
++    RunContextWrapper,
++    Runner,
++    UserError,
++)
++from agents.lifecycle import RunHooks
++from agents.testing import ModelStep, ScriptedModel
++
++from .test_responses import get_text_message
++from .testing_processor import fetch_ordered_spans
++from .utils.simple_session import SimpleListSession
++
++
++class Answer(BaseModel):
++    value: str
++
++
++class EndHooks(RunHooks):
++    def __init__(self) -> None:
++        self.outputs: list[Any] = []
++
++    async def on_agent_end(
++        self, context: RunContextWrapper[Any], agent: Agent[Any], output: Any
++    ) -> None:
++        self.outputs.append(output)
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize("streaming", [False, True])
++@pytest.mark.parametrize("structured", [False, True])
++async def test_terminal_empty_is_not_an_answer(streaming: bool, structured: bool) -> None:
++    model = ScriptedModel([ModelStep(output=[], empty_output_stop_reason="stop")])
++    output_checks: list[Any] = []
++
++    async def output_guard(
++        context: RunContextWrapper[Any], agent: Agent[Any], output: Any
++    ) -> GuardrailFunctionOutput:
++        output_checks.append(output)
++        raise AssertionError("There is no final answer to validate")
++
++    hooks = EndHooks()
++    session = SimpleListSession()
++    agent = Agent(
++        name="empty-stop",
++        model=model,
++        output_type=Answer if structured else None,
++        output_guardrails=[OutputGuardrail(output_guard)],
++    )
++    config = RunConfig(complete_on_empty_stop=True)
++    if streaming:
++        result = Runner.run_streamed(
++            agent, "input", run_config=config, hooks=hooks, session=session
++        )
++        assert result.is_complete is False
++        async for _ in result.stream_events():
++            pass
++        assert result.is_complete is True
++    else:
++        result = await Runner.run(agent, "input", run_config=config, hooks=hooks, session=session)
++    assert result.final_output is None
++    assert result.completion_reason == "completed_without_output"
++    assert result.new_items == []
++    assert len(model.calls) == 1
++    assert result.raw_responses[0].empty_output_stop_reason == "stop"
++    assert hooks.outputs == [None]
++    assert output_checks == []
++    assert result.output_guardrail_results == []
++    assert all(item.get("role") != "assistant" for item in await session.get_items())
++    with pytest.raises(UserError, match="terminal and cannot be resumed"):
++        result.to_state()
++    terminal_spans = [
++        span.export()
++        for span in fetch_ordered_spans()
++        if getattr(span.span_data, "name", None) == "completed_without_output"
++    ]
++    assert len(terminal_spans) == 1
++    assert terminal_spans[0] is not None
++    assert terminal_spans[0]["span_data"]["data"] == {"provider_finish_reason": "stop"}
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize("streaming", [False, True])
++@pytest.mark.parametrize("enabled,metadata", [(False, "stop"), (True, None)])
++async def test_default_recovery_and_missing_metadata_unchanged(
++    streaming: bool, enabled: bool, metadata: Any
++) -> None:
++    model = ScriptedModel(
++        [
++            ModelStep(output=[], empty_output_stop_reason=metadata),
++            [get_text_message('{"value":"ok"}')],
++        ]
++    )
++    agent = Agent(name="recovery", model=model, output_type=Answer)
++    config = RunConfig(complete_on_empty_stop=enabled)
++    if streaming:
++        result = Runner.run_streamed(agent, "input", run_config=config)
++        async for _ in result.stream_events():
++            pass
++    else:
++        result = await Runner.run(agent, "input", run_config=config)
++    assert result.final_output == Answer(value="ok")
++    assert result.completion_reason is None
++    assert len(model.calls) == 2
++
++
++@pytest.mark.asyncio
++@pytest.mark.parametrize("streaming", [False, True])
++async def test_input_guardrail_still_blocks(streaming: bool) -> None:
++    async def reject(
++        context: RunContextWrapper[Any], agent: Agent[Any], input: Any
++    ) -> GuardrailFunctionOutput:
++        return GuardrailFunctionOutput(output_info=None, tripwire_triggered=True)
++
++    model = ScriptedModel([ModelStep(output=[], empty_output_stop_reason="stop")])
++    agent = Agent(
++        name="guarded",
++        model=model,
++        input_guardrails=[InputGuardrail(reject, run_in_parallel=False)],
++    )
++    with pytest.raises(InputGuardrailTripwireTriggered):
++        if streaming:
++            result = Runner.run_streamed(
++                agent, "input", run_config=RunConfig(complete_on_empty_stop=True)
++            )
++            async for _ in result.stream_events():
++                pass
++        else:
++            await Runner.run(agent, "input", run_config=RunConfig(complete_on_empty_stop=True))
++    assert len(model.calls) == 0
++
++
++def test_sync_empty_stop() -> None:
++    model = ScriptedModel([ModelStep(output=[], empty_output_stop_reason="stop")])
++    result = Runner.run_sync(
++        Agent(name="sync", model=model, output_type=Answer),
++        "input",
++        run_config=RunConfig(complete_on_empty_stop=True),
++    )
++    assert result.final_output is None
++    assert result.completion_reason == "completed_without_output"
++    assert len(model.calls) == 1

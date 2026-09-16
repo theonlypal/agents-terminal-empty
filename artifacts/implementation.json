@@ -1,0 +1,70 @@
+{
+  "upstream_repository": "https://github.com/openai/openai-agents-python",
+  "upstream_commit": "fbf59a40e9da5adb88d370fefaeaae0478376d4a",
+  "source_archive_sha256": "ed831fef4b2bdf7096ee792d8a4e222b12f6e13423c985d7e64d2873a3f63947",
+  "patch_sha256": "19987e774281d9ed4a637756cb3269adc941f45b832da77b6f0f61b3ba667a83",
+  "upstream_source_identity_sha256": "3b8a121dfcd8cc37d3adf001eb9907b4e0bd08a367869d897fc8f2ffd7619356",
+  "patched_source_identity_sha256": "8cf119c6d70ef3733b1ba11b53c573ba73a417dd02b9ca17d0eb523e5d350acb",
+  "source_identity_method": "SHA-256 of compact sorted JSON mapping src/agents Python file paths to SHA-256 (UTF-8, ensure_ascii=False)",
+  "changed_files": 11,
+  "added_lines": 555,
+  "deleted_lines": 13,
+  "paths": [
+    {
+      "path": "src/agents/items.py",
+      "added": 8,
+      "deleted": 0
+    },
+    {
+      "path": "src/agents/models/openai_chatcompletions.py",
+      "added": 64,
+      "deleted": 2
+    },
+    {
+      "path": "src/agents/result.py",
+      "added": 11,
+      "deleted": 0
+    },
+    {
+      "path": "src/agents/run.py",
+      "added": 8,
+      "deleted": 2
+    },
+    {
+      "path": "src/agents/run_config.py",
+      "added": 10,
+      "deleted": 0
+    },
+    {
+      "path": "src/agents/run_internal/run_loop.py",
+      "added": 18,
+      "deleted": 7
+    },
+    {
+      "path": "src/agents/run_internal/run_steps.py",
+      "added": 2,
+      "deleted": 1
+    },
+    {
+      "path": "src/agents/run_internal/turn_resolution.py",
+      "added": 30,
+      "deleted": 1
+    },
+    {
+      "path": "src/agents/testing/model.py",
+      "added": 7,
+      "deleted": 0
+    },
+    {
+      "path": "tests/models/test_empty_output_stop_metadata.py",
+      "added": 243,
+      "deleted": 0
+    },
+    {
+      "path": "tests/test_empty_stop_policy.py",
+      "added": 154,
+      "deleted": 0
+    }
+  ],
+  "publication_status": "Local only; no push, PR, issue or email sent."
+}

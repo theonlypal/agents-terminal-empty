@@ -1,0 +1,15 @@
+{
+  "command": [
+    "git",
+    "apply",
+    "--check",
+    "/Users/rayanpal/agents-terminal-empty-20260915.DdJxH7/artifacts/upstream.patch"
+  ],
+  "cwd": "/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-s9vd6we3/sdk",
+  "started_utc": "2026-09-16T05:50:46.918498+00:00",
+  "finished_utc": "2026-09-16T05:50:46.973667+00:00",
+  "elapsed_seconds": 0.05519429093692452,
+  "exit_code": 0,
+  "log": "patch-check.log",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

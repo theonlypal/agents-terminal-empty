@@ -1,0 +1,1 @@
+{"model":"gpt-4-0613","messages":[{"role":"system","content":"You are the concept the user names. Embody it completely. Output only what the concept itself would say or express. If the concept is silent by nature, be silent."},{"role":"user","content":"Say hello."}],"max_tokens":1500,"stream":false}

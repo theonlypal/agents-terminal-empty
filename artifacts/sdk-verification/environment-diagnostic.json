@@ -1,0 +1,22 @@
+{
+  "first_attempt_status": "FAIL",
+  "failed_stage": "typecheck",
+  "first_attempt_gate_exit_code": 2,
+  "tests_started": false,
+  "source_files_unchanged": true,
+  "input_files_unchanged": true,
+  "observed": {
+    "PYTHONPATH": "/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-s9vd6we3/sdk/src",
+    "editable_install_pth": "/private/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-s9vd6we3/sdk/src",
+    "pyright_errors": 2,
+    "pyright_error_path": "src/agents/realtime/openai_realtime.py",
+    "mypy_checked_files": 312,
+    "mypy_status": "PASS"
+  },
+  "diagnosis": "Pyright sees the same source through the macOS /var alias and the canonical /private/var path and reports incompatible duplicate types.",
+  "environment_correction": "Resolve the fresh temporary root to its canonical path before setting cwd, PYTHONPATH and the virtual-environment path.",
+  "runner_change": "Add .resolve() to the Path(tempfile.mkdtemp(...)) expression.",
+  "sdk_or_patch_changes": false,
+  "next_attempt": "attempt-2/verification.json",
+  "next_attempt_policy": "New source extraction, unchanged patch, fresh frozen dependency install and the full verification stack. No test or source changes."
+}

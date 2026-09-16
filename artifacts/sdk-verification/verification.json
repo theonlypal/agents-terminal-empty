@@ -1,0 +1,57 @@
+{
+  "schema": "fresh-patched-sdk-verification/v1",
+  "status": "FAIL",
+  "checks": {
+    "format": true,
+    "lint": true,
+    "typecheck": false,
+    "tests": false
+  },
+  "tests": {
+    "parsed": false,
+    "summaries": []
+  },
+  "mypy_checked_files": 312,
+  "pyright_zero_diagnostics": false,
+  "input_files_unchanged": true,
+  "source_files_unchanged": true,
+  "changed_source_paths": [],
+  "source_identity_after": "8cf119c6d70ef3733b1ba11b53c573ba73a417dd02b9ca17d0eb523e5d350acb",
+  "setup": {
+    "command": [
+      "/Users/rayanpal/.cache/uv/archive-v0/4uS-qO9cxHLg5UJLW0Vi8/uv-0.12.15.data/scripts/uv",
+      "sync",
+      "--frozen",
+      "--offline",
+      "--all-extras",
+      "--all-packages",
+      "--group",
+      "dev"
+    ],
+    "cwd": "/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-s9vd6we3/sdk",
+    "started_utc": "2026-09-16T05:50:47.049166+00:00",
+    "finished_utc": "2026-09-16T05:50:48.142897+00:00",
+    "elapsed_seconds": 1.0937593340640888,
+    "exit_code": 0,
+    "log": "environment-setup.log",
+    "log_sha256": "cad3c4e9fa735bccc599d1225afc314d9e20d48034105408c4cc3f64bff4edd9"
+  },
+  "gate": {
+    "command": [
+      "bash",
+      ".agents/skills/code-change-verification/scripts/run.sh"
+    ],
+    "cwd": "/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-s9vd6we3/sdk",
+    "started_utc": "2026-09-16T05:50:48.281821+00:00",
+    "finished_utc": "2026-09-16T05:53:07.364021+00:00",
+    "elapsed_seconds": 139.08323620795272,
+    "exit_code": 2,
+    "log": "repository-verification.log",
+    "log_sha256": "a68b89eac49439e95d39a90ea87d61949ccb3efe5c4ee781fb43384e7eada138"
+  },
+  "coverage_limits": [
+    "Repository-designated native macOS nested-sandbox tests use the required Codex skip flag.",
+    "Live provider integration and other platform or container matrices were not invoked.",
+    "The SDK suite includes mocked transports and local subprocess/network fixtures."
+  ]
+}

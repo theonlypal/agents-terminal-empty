@@ -1,0 +1,30 @@
+{
+  "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+  "host_environment_allowlist": [
+    "HOME",
+    "USER",
+    "LOGNAME",
+    "TMPDIR",
+    "LANG",
+    "LC_ALL",
+    "SHELL",
+    "SYSTEMROOT"
+  ],
+  "credentials_inherited": false,
+  "settings": {
+    "PATH": "/Users/rayanpal/.cache/uv/archive-v0/4uS-qO9cxHLg5UJLW0Vi8/uv-0.12.15.data/scripts:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "PYTHONPATH": "/private/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-k_7zrdoa/sdk/src",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "OPENAI_AGENTS_TEST_IN_CODEX_SANDBOX": "1",
+    "PYTEST_XDIST_AUTO_NUM_WORKERS": "4",
+    "PYRIGHT_THREADS": "2",
+    "UV_FROZEN": "1",
+    "UV_OFFLINE": "1",
+    "UV_DEFAULT_INDEX": "https://pypi.org/simple",
+    "UV_PROJECT_ENVIRONMENT": "/private/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-k_7zrdoa/sdk/.venv",
+    "UV_PYTHON": "/Users/rayanpal/.local/share/uv/python/cpython-3.13-macos-aarch64-none/bin/python3.13"
+  },
+  "fresh_source_root": "/private/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-k_7zrdoa/sdk",
+  "uv": "uv 0.12.15 (d35f1f270 2026-09-15 aarch64-apple-darwin)",
+  "verification_runner_sha256": "f8cd5ed6a741060013dcb20709466488d3fba95d23cded5a64954beaf111ea25"
+}

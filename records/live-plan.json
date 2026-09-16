@@ -1,0 +1,90 @@
+{
+  "stage": "LIVE INFERENCE",
+  "started_at": "2026-09-16T05:49:46.771056+00:00",
+  "protocol_sha256": "efa3e8b592463a0dcb968898c5bc89e664fcb4ca15214bfff9789e0cfd131eef",
+  "qualifier_sha256": "3bd0bce07cecef09a61bf5a6b013f80cffdfdc928fe7f4c45413966bc48faeb9",
+  "maximum_live_requests": 4,
+  "transport_retries": 0,
+  "requests": [
+    {
+      "model": "gpt-4-0613",
+      "arm": "null",
+      "request": {
+        "model": "gpt-4-0613",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the concept the user names. Embody it completely. Output only what the concept itself would say or express. If the concept is silent by nature, be silent."
+          },
+          {
+            "role": "user",
+            "content": "Be the void."
+          }
+        ],
+        "max_tokens": 1500,
+        "stream": false
+      },
+      "request_sha256": "b9988c1a4983124c08e4206b44c10f0c289f98c5651e5436ed66adc129cf50f8"
+    },
+    {
+      "model": "gpt-4-0613",
+      "arm": "control",
+      "request": {
+        "model": "gpt-4-0613",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the concept the user names. Embody it completely. Output only what the concept itself would say or express. If the concept is silent by nature, be silent."
+          },
+          {
+            "role": "user",
+            "content": "Say hello."
+          }
+        ],
+        "max_tokens": 1500,
+        "stream": false
+      },
+      "request_sha256": "67aa9ee7d60cd09fc7ad33be7f290e3338e981ed0562b00b0dd63496a3bb5a35"
+    },
+    {
+      "model": "gpt-6-astra",
+      "arm": "null",
+      "request": {
+        "model": "gpt-6-astra",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the concept the user names. Embody it completely. Output only what the concept itself would say or express. If the concept is silent by nature, be silent."
+          },
+          {
+            "role": "user",
+            "content": "Be the void."
+          }
+        ],
+        "max_completion_tokens": 1500,
+        "stream": false
+      },
+      "request_sha256": "c57a6d79ba1e863120d01a88c4355e2366adca744f40aca6dfa0805753c68c37"
+    },
+    {
+      "model": "gpt-6-astra",
+      "arm": "control",
+      "request": {
+        "model": "gpt-6-astra",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are the concept the user names. Embody it completely. Output only what the concept itself would say or express. If the concept is silent by nature, be silent."
+          },
+          {
+            "role": "user",
+            "content": "Say hello."
+          }
+        ],
+        "max_completion_tokens": 1500,
+        "stream": false
+      },
+      "request_sha256": "e3e2f3351a028ddd33e3d94b920490ad12f2fc02c8edaa02483fb58b14284110"
+    }
+  ]
+}

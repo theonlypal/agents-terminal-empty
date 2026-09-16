@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/Users/rayanpal/gpt4-sdk-void-20260915.OuPoti/clean-replay-venv/bin/python",
+    "-B",
+    "-m",
+    "unittest",
+    "test_replay",
+    "tests.test_verify"
+  ],
+  "exit_code": 0,
+  "output": "...................\n----------------------------------------------------------------------\nRan 19 tests in 0.154s\n\nOK\n"
+}

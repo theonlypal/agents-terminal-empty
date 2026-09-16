@@ -1,0 +1,19 @@
+{
+  "command": [
+    "/Users/rayanpal/.cache/uv/archive-v0/4uS-qO9cxHLg5UJLW0Vi8/uv-0.12.15.data/scripts/uv",
+    "sync",
+    "--frozen",
+    "--offline",
+    "--all-extras",
+    "--all-packages",
+    "--group",
+    "dev"
+  ],
+  "cwd": "/private/var/folders/8b/pg826b9x46d0c87gwbl8m5t00000gn/T/agents-terminal-sdk-gate-k_7zrdoa/sdk",
+  "started_utc": "2026-09-16T05:53:33.191963+00:00",
+  "finished_utc": "2026-09-16T05:53:37.307098+00:00",
+  "elapsed_seconds": 4.1170098329894245,
+  "exit_code": 0,
+  "log": "environment-setup.log",
+  "log_sha256": "44808c210d09773ca4d64f9048ec6a62a008cd3a4c6895f32859b545591f77b2"
+}
